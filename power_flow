@@ -1,0 +1,49 @@
+import numpy as np
+Bus_data = np.loadtxt('bus.txt', delimiter = ',', skiprows = 1, dtype = float)
+branch_data = np.loadtxt('branch.txt', delimiter = ',', skiprows = 1, dtype = float)
+print("Bus Data",Bus_data,"Branch_data",branch_data)
+n=np.shape(Bus_data)
+n=n[0]
+m=np.shape(branch_data)
+m=m[0]
+print(m)
+
+p = Bus_data[:,1,None] - Bus_data[:,2,None]   #Solve for net power at each bus
+print("New power flow",p)
+
+b = np.zeros((n,n))   #Set up empty 'Y-bus' 2d array of susceptances
+
+for v in range(m):       #For each line
+    x = branch_data[v,0]    #Get 'from bus'
+    y = branch_data[v,1]    #Get 'to bus'
+    print(x,y)
+    b[int(x-1),int(y-1)] = branch_data[v,2]     #Fill in off-diagonal values
+    b[int(y-1),int(x-1)] = branch_data[v,2]     #Fill in off-diagonal values
+    b[int(x-1),int(x-1)] = (b[int(x-1),int(x-1)] - branch_data[v,2])    #Fill in diagonal values
+    b[int(y-1),int(y-1)] = (b[int(y-1),int(y-1)] - branch_data[v,2])    #Fill in diagonal values
+    print (f"Impedance matrix", b)
+
+s=int(input("Enter the bus no whcich is slack bus"))
+b=np.delete(b,s-1,s-1)
+b=np.delete(b,s-1,s)
+print("Impedance Matrix After removing slack bus",b)
+w = np.linalg.inv(b)
+print("Inverted Matrix=",w)
+p=np.delete(p,s-1,s-1)
+print("power matrix",p)
+d = np.dot(w,p)
+zero_row = np.zeros(d.shape[1])   
+d=np.vstack([zero_row,d])  
+print("Angle=",d)
+
+
+for u in range(m):
+    x = branch_data[u, 0]    # Get 'from bus'
+    y = branch_data[u, 1]    # Get 'to bus'
+
+    # Calculate Branch_power 
+    Branch_power = - branch_data[u,2] * (d[int(x-1),0] - d[int(y-1),0])
+    
+    # Print the result
+    print(f"Power flow from bus {x} to bus {y} is = {Branch_power}")
+
